@@ -3,6 +3,8 @@ import cv2
 import scipy.sparse as sp
 
 
+
+
 def tsmooth(img, lam=0.01, sigma=3.0, sharpness=0.001):
     # img is the image nparray whose value is in the range[0, 1]
     wx, wy = compute_texture_weights(img, sigma, sharpness)
@@ -34,26 +36,27 @@ def solve_linear_equation(img, wx, wy, lam):
     dy = -lam * wy.reshape((k, 1))
     tempx = np.hstack((wx[:, -1, np.newaxis], wx[:, 0:-1]))
     tempy = np.vstack((wy[np.newaxis, -1, :], wy[0:-1, :]))
-    dxa = -lam * tempx.reshape((tempx.shape[0] * tempx.shape[1], 1))
-    dya = -lam * tempy.reshape((tempy.shape[0] * tempy.shape[1], 1))
+    dxa = -lam * tempx.T.reshape((tempx.shape[0] * tempx.shape[1], 1))
+    dya = -lam * tempy.T.reshape((tempy.shape[0] * tempy.shape[1], 1))
     tempx = np.hstack((wx[:, -1, np.newaxis], np.zeros((img.shape[0], img.shape[1] - 1))))
     tempy = np.vstack((wy[np.newaxis, -1, :], np.zeros((img.shape[0] - 1, img.shape[1]))))
-    dxd1 = -lam * tempx.reshape((tempx.shape[0] * tempx.shape[1], 1))
-    dyd1 = -lam * tempy.reshape((tempy.shape[0] * tempy.shape[1], 1))
+    dxd1 = -lam * tempx.T.reshape((tempx.shape[0] * tempx.shape[1], 1))
+    dyd1 = -lam * tempy.T.reshape((tempy.shape[0] * tempy.shape[1], 1))
     wx[:, -1] = 0
     wy[-1, :] = 0
-    dxd2 = -lam * wx.reshape((wx.shape[0] * wx.shape[1], 1))
-    dyd2 = -lam * wy.reshape((wy.shape[0] * wy.shape[1], 1))
+    dxd2 = -lam * wx.T.reshape((wx.shape[0] * wx.shape[1], 1))
+    dyd2 = -lam * wy.T.reshape((wy.shape[0] * wy.shape[1], 1))
 
     Ax = sp.spdiags(np.hstack((dxd1, dxd2)).T, np.array([-k + r, -r]), k, k)#.toarray()
     Ay = sp.spdiags(np.hstack((dyd1, dyd2)).T, np.array([-r + 1, -1]), k, k)#.toarray()
 
     D = 1 - (dx + dy + dxa + dya)
-    A = (Ax + Ay) + (Ax + Ay).transpose() + sp.spdiags(D.T, 0, k, k)#.toarray()
-
+    A = (Ax + Ay) + (Ax + Ay).T + sp.spdiags(D.T, 0, k, k)#.toarray()
+    
+    # L = scipy.sparse.cholmod.cholesky(A)
     output = img
     for i in range(0, ch):
-        tin = img[:, :, i, np.newaxis]
-        tout = A / tin
-        output[:, :, i] = tout.reshape((r, c))
+        tin = img
+        tout = sp.linalg.cg(A, tin.reshape((k, 1)), tol=0.1, maxiter=50)
+        output = tout[0].reshape((r, c))
     return output
