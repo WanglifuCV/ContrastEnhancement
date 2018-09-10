@@ -4,10 +4,12 @@ from tsmooth import tsmooth
 import scipy.optimize as so
 
 
-def enhance(img_path, k=None, mu = 0.5, a = -0.3293, b = 1.1258, lam=0.5, sigma=5):
-    img = cv2.imread(img_path) / 255
+def enhance(img_path, k=None, mu=0.5, a=-0.3293, b=1.1258, lam=0.5, sigma=5):
+    img = cv2.imread(img_path) / 255.0
     t_b = np.max(img, axis=2)
-    t_our = cv2.resize(tsmooth(cv2.resize(t_b, fx=0.5, fy=0.5), lam, sigma), img.shape)
+    downsample = cv2.resize(t_b, None, fx=0.5, fy=0.5)
+    tsm = tsmooth(downsample, lam, sigma)
+    t_our = cv2.resize(tsm, (img.shape[0], img.shape[1]))
 
     if k is not None:
         corrected = apply_correction(img, k, a, b)

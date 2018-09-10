@@ -11,7 +11,7 @@ def tsmooth(img, lam=0.01, sigma=3.0, sharpness=0.001):
 
 
 def compute_texture_weights(img, sigma, sharpness):
-    dt0_v = np.vstack((np.diff(img, axis=0), img[0, :, np.newaxis] - img[-1, :, np.newaxis]))
+    dt0_v = np.vstack((np.diff(img, axis=0), img[np.newaxis, 0, :] - img[np.newaxis, -1, :]))
     dt0_h = np.hstack((np.diff(img, axis=1), img[:, 0, np.newaxis] - img[:, -1, np.newaxis]))
     h_kernel = np.ones((1, sigma), np.float32)
     v_kernel = np.ones((sigma, 1), np.float32)
@@ -25,16 +25,19 @@ def compute_texture_weights(img, sigma, sharpness):
 def solve_linear_equation(img, wx, wy, lam):
     r = img.shape[0]
     c = img.shape[1]
-    ch = img.shape[2]
+    if len(img.shape) > 2:
+        ch = img.shape[2]
+    else:
+        ch = 1
     k = r * c
     dx = -lam * wx.reshape((k, 1))
     dy = -lam * wy.reshape((k, 1))
-    tempx = np.hstack((wx[:, -1, np.newaxis], wx[:, -2, np.newaxis]))
-    tempy = np.vstack((wy[-1, :, np.newaxis], wy[-2, :, np.newaxis]))
-    dxa = -lam * tempx.reshape((tempx.shape[0] * tempx.shape[1]))
-    dya = -lam * tempy.reshape((tempy.shape[0] * tempy.shape[1]))
+    tempx = np.hstack((wx[:, -1, np.newaxis], wx[:, 0:-1]))
+    tempy = np.vstack((wy[np.newaxis, -1, :], wy[0:-1, :]))
+    dxa = -lam * tempx.reshape((tempx.shape[0] * tempx.shape[1], 1))
+    dya = -lam * tempy.reshape((tempy.shape[0] * tempy.shape[1], 1))
     tempx = np.hstack((wx[:, -1, np.newaxis], np.zeros((img.shape[0], img.shape[1] - 1))))
-    tempy = np.vstack((wy[-1, :, np.newaxis], np.zeros((img.shape[0] - 1, img.shape[1]))))
+    tempy = np.vstack((wy[np.newaxis, -1, :], np.zeros((img.shape[0] - 1, img.shape[1]))))
     dxd1 = -lam * tempx.reshape((tempx.shape[0] * tempx.shape[1], 1))
     dyd1 = -lam * tempy.reshape((tempy.shape[0] * tempy.shape[1], 1))
     wx[:, -1] = 0
@@ -42,11 +45,11 @@ def solve_linear_equation(img, wx, wy, lam):
     dxd2 = -lam * wx.reshape((wx.shape[0] * wx.shape[1], 1))
     dyd2 = -lam * wy.reshape((wy.shape[0] * wy.shape[1], 1))
 
-    Ax = sp.spdiags(np.hstack((dxd1, dxd2), np.array([-k + r, -r]), k, k)).toarray()
-    Ay = sp.spdiags(np.vstack((dyd1, dyd2), np.array([-r + 1, -1]), k, k)).toarray()
+    Ax = sp.spdiags(np.hstack((dxd1, dxd2)).T, np.array([-k + r, -r]), k, k)#.toarray()
+    Ay = sp.spdiags(np.hstack((dyd1, dyd2)).T, np.array([-r + 1, -1]), k, k)#.toarray()
 
     D = 1 - (dx + dy + dxa + dya)
-    A = (Ax + Ay) + (Ax + Ay).transpose() + sp.spdiags(D, 0, k, k).toarray()
+    A = (Ax + Ay) + (Ax + Ay).transpose() + sp.spdiags(D.T, 0, k, k)#.toarray()
 
     output = img
     for i in range(0, ch):
