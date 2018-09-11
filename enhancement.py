@@ -2,10 +2,12 @@ import cv2
 import numpy as np
 from tsmooth import tsmooth
 import scipy.optimize as so
+from skimage import img_as_float
 
 
 def enhance(img_path, k=None, mu=0.5, a=-0.3293, b=1.1258, lam=0.5, sigma=5):
-    img = cv2.imread(img_path) / 255.0
+    img = cv2.imread(img_path)
+    img = img_as_float(img)
     t_b = np.max(img, axis=2)
     downsample = cv2.resize(t_b, None, fx=0.5, fy=0.5)
     tsm = tsmooth(downsample, lam, sigma)
