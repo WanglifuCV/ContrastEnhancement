@@ -3,7 +3,7 @@ import scipy.sparse as sp
 import numpy as np
 import pprint
 
-num = 10
+num = 30
 
 data = np.zeros((2 * num - 1, num))
 diags = np.arange(-num, num-1, 1)
