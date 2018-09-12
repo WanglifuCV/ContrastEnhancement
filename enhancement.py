@@ -2,15 +2,17 @@ import cv2
 import numpy as np
 from tsmooth import tsmooth
 import scipy.optimize as so
-from skimage import img_as_float
+from skimage import img_as_float, img_as_int
+import os.path as osp
 
 
 def enhance(img_path, k=None, mu=0.5, a=-0.3293, b=1.1258, lam=0.5, sigma=5):
     img = cv2.imread(img_path)
     img = img_as_float(img)
     t_b = np.max(img, axis=2)
-    downsample = cv2.resize(t_b, None, fx=0.5, fy=0.5)
+    downsample = cv2.resize(t_b, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC)
     tsm = tsmooth(downsample, lam, sigma)
+    cv2.imwrite('tsmooth/' + osp.split(img_path)[-1], (np.maximum(tsm/np.max(tsm), 0) * 255).astype(np.uint8))
     t_our = cv2.resize(tsm, (img.shape[1], img.shape[0]))
 
     if k is not None:

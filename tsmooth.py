@@ -1,8 +1,7 @@
 import numpy as np
 import cv2
 import scipy.sparse as sp
-
-
+from scipy.sparse.linalg import cg
 
 
 def tsmooth(img, lam=0.01, sigma=3.0, sharpness=0.001):
@@ -56,7 +55,9 @@ def solve_linear_equation(img, wx, wy, lam):
     # L = scipy.sparse.cholmod.cholesky(A)
     output = img
     for i in range(0, ch):
-        tin = img
-        tout = sp.linalg.cg(A, tin.reshape((k, 1)), tol=0.1, maxiter=50)
-        output = tout[0].reshape((r, c))
+        tin = img.T.reshape((k, 1))
+        tout = cg(A, tin, tol=0.001)
+        # err = np.linalg.norm(A * tout[0] - tin)
+        # print 'Error = {}'.format(err)
+        output = tout[0].reshape((r, c), order='F')
     return output
