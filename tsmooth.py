@@ -31,8 +31,8 @@ def solve_linear_equation(img, wx, wy, lam):
     else:
         ch = 1
     k = r * c
-    dx = -lam * wx.reshape((k, 1))
-    dy = -lam * wy.reshape((k, 1))
+    dx = -lam * wx.T.reshape((k, 1))
+    dy = -lam * wy.T.reshape((k, 1))
     tempx = np.hstack((wx[:, -1, np.newaxis], wx[:, 0:-1]))
     tempy = np.vstack((wy[np.newaxis, -1, :], wy[0:-1, :]))
     dxa = -lam * tempx.T.reshape((tempx.shape[0] * tempx.shape[1], 1))
